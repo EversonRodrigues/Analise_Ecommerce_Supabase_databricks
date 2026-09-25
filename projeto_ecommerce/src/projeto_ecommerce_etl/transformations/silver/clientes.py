@@ -14,6 +14,13 @@
 #   qualquer agrupamento ou deduplicacao por nome trata os dois como clientes diferentes.
 #   A regex e ancorada no inicio (^) de proposito: "Dra." no meio do nome e parte do nome.
 #
+# POR QUE as particulas voltam para minuscula depois do initcap:
+#   O initcap poe maiuscula em toda palavra, entao 'Murilo da Mata' virava 'Murilo Da Mata'.
+#   Em portugues a particula e minuscula, e este nome vai direto para o dashboard da diretoria e
+#   para as respostas do Genie -- nome errado na tela e erro visivel para o negocio. A troca so
+#   vale para a palavra inteira no MEIO do nome: a primeira palavra fica como esta (nenhum nome
+#   comeca por particula) e 'Eduardo' nao pode ser afetado pela particula 'e'.
+#
 # POR QUE a tabela de UFs mora aqui dentro:
 #   Nao existe tabela de estados na bronze. As 27 UFs do IBGE sao uma constante do pais --
 #   nao mudam com os dados e nao valem uma tabela de dimensao. Declaradas no arquivo, ficam
@@ -68,6 +75,26 @@ UFS_IBGE = {
 # engole o espaco que sobra depois da remocao.
 REGEX_PRONOME = r"^(Sr|Sra|Srta|Dr|Dra)\.\s*"
 
+# Particulas que ficam em minuscula no meio do nome, pela convencao do portugues.
+PARTICULAS = ("da", "das", "de", "do", "dos", "e")
+
+
+def _particulas_em_minuscula(coluna):
+    """Devolve as particulas do nome a minuscula depois do initcap.
+
+    O initcap nao sabe distinguir particula de sobrenome, entao 'Murilo da Mata' virava
+    'Murilo Da Mata'. E uma substituicao por particula porque o regexp_replace do Spark nao
+    minusculiza o grupo capturado -- nao existe o \\L do sed no replacement do Java.
+    """
+    for particula in PARTICULAS:
+        # Os lookarounds (?<=\s) e (?=\s) garantem que so a palavra INTEIRA e NO MEIO do nome
+        # e trocada. Isso protege dois casos: a primeira palavra nunca e particula (um nome nao
+        # comeca com 'Da'), e 'Eduardo' nao pode perder a maiuscula por causa do 'e'.
+        coluna = F.regexp_replace(
+            coluna, rf"(?<=\s){particula.capitalize()}(?=\s)", particula
+        )
+    return coluna
+
 
 def _mapa(indice):
     """Constroi um map SQL sigla -> valor a partir de UFS_IBGE (0 = nome, 1 = regiao)."""
@@ -107,8 +134,11 @@ def silver_clientes():
             # nome_original preserva exatamente o que veio da bronze.
             F.col("nome_cliente").alias("nome_original"),
             # initcap normaliza o caixa depois de tirar o pronome: "JOAO silva" -> "Joao Silva".
-            F.initcap(
-                F.trim(F.regexp_replace(F.col("nome_cliente"), REGEX_PRONOME, ""))
+            # Em seguida as particulas voltam para minuscula: "Murilo Da Mata" -> "Murilo da Mata".
+            _particulas_em_minuscula(
+                F.initcap(
+                    F.trim(F.regexp_replace(F.col("nome_cliente"), REGEX_PRONOME, ""))
+                )
             ).alias("nome_cliente"),
             F.col("estado"),
             _mapa(0)[F.col("estado")].alias("nome_estado"),

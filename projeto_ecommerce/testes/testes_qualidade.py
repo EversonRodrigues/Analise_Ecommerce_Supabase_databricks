@@ -138,6 +138,92 @@ TESTES = [
         WHERE segmento_cliente = 'VIP' AND receita < 22000
         """,
     ),
+    # ---------------- golds da Diretoria Comercial ----------------
+    # As tres primeiras provam que nenhuma agregacao perdeu ou inventou dinheiro. Sao a rede que
+    # pega um INNER JOIN colocado por engano no lugar de um LEFT JOIN: bastaria isso para as 20
+    # vendas de produto nao cadastrado sumirem e a receita cair R$ 4.240,01 sem erro nenhum.
+    (
+        "gold_temporais_receita_fecha_com_silver",
+        """
+        SELECT CASE WHEN a = b THEN 0 ELSE 1 END AS problemas,
+               concat('vendas_temporais ', a, ' vs silver ', b, ' (diferenca ', a - b, ')') AS detalhe
+        FROM (
+            SELECT (SELECT sum(receita) FROM gold.vendas_temporais) AS a,
+                   (SELECT sum(receita) FROM silver.vendas) AS b
+        )
+        """,
+    ),
+    (
+        "gold_produtos_receita_fecha_com_silver",
+        """
+        SELECT CASE WHEN a = b THEN 0 ELSE 1 END AS problemas,
+               concat('vendas_produtos ', a, ' vs silver ', b, ' (diferenca ', a - b, ')') AS detalhe
+        FROM (
+            SELECT (SELECT sum(receita) FROM gold.vendas_produtos) AS a,
+                   (SELECT sum(receita) FROM silver.vendas) AS b
+        )
+        """,
+    ),
+    (
+        "gold_detalhadas_receita_fecha_com_silver",
+        """
+        SELECT CASE WHEN a = b THEN 0 ELSE 1 END AS problemas,
+               concat('vendas_detalhadas ', a, ' vs silver ', b, ' (diferenca ', a - b, ')') AS detalhe
+        FROM (
+            SELECT (SELECT sum(receita) FROM gold.vendas_detalhadas) AS a,
+                   (SELECT sum(receita) FROM silver.vendas) AS b
+        )
+        """,
+    ),
+    (
+        "gold_detalhadas_mesmo_numero_de_linhas_da_silver",
+        """
+        SELECT CASE WHEN a = b THEN 0 ELSE 1 END AS problemas,
+               concat('vendas_detalhadas ', a, ' linhas vs silver ', b) AS detalhe
+        FROM (
+            SELECT (SELECT count(*) FROM gold.vendas_detalhadas) AS a,
+                   (SELECT count(*) FROM silver.vendas) AS b
+        )
+        """,
+    ),
+    (
+        "gold_detalhadas_id_venda_unico",
+        """
+        SELECT count(*) AS problemas,
+               concat(count(*), ' id_venda repetido(s)') AS detalhe
+        FROM (
+            SELECT id_venda FROM gold.vendas_detalhadas
+            GROUP BY id_venda HAVING count(*) > 1
+        )
+        """,
+    ),
+    (
+        "gold_detalhadas_toda_venda_com_segmento_e_regiao",
+        """
+        -- Se o join com gold.clientes_segmentacao falhar para alguma venda, a linha fica na
+        -- tabela (LEFT JOIN) mas sem segmento nem regiao -- e as perguntas cruzadas passariam a
+        -- responder errado sem avisar.
+        SELECT count(*) AS problemas,
+               concat(count(*), ' venda(s) sem segmento ou sem regiao') AS detalhe
+        FROM gold.vendas_detalhadas
+        WHERE segmento_cliente IS NULL OR regiao IS NULL
+        """,
+    ),
+    # ---------------- gold da Diretoria de Pricing ----------------
+    (
+        "gold_precos_id_produto_unico",
+        """
+        -- O grao e "um produto". Se a agregacao de silver.preco_competidores vazar mais de uma
+        -- linha por id_produto, a media do concorrente aparece duplicada e o diretor ve o mesmo
+        -- produto duas vezes na lista de acao.
+        SELECT count(*) AS problemas,
+               concat(count(*), ' id_produto repetido(s)') AS detalhe
+        FROM (
+            SELECT id_produto FROM gold.precos_competitividade
+            GROUP BY id_produto HAVING count(*) > 1
+        )
+        """,
+    ),
     (
         "gold_todas_as_colunas_comentadas",
         """
