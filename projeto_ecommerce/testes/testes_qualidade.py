@@ -93,6 +93,77 @@ TESTES = [
         )
         """,
     ),
+    # ---------------- gold.clientes_segmentacao (Customer Success) ----------------
+    (
+        "gold_clientes_receita_fecha_com_silver",
+        """
+        -- A prova de que o LEFT JOIN da gold nao perdeu dinheiro. Se uma venda tiver
+        -- id_cliente que nao existe em silver.clientes, ela sai da gold e este teste acusa.
+        SELECT CASE WHEN receita_gold = receita_silver THEN 0 ELSE 1 END AS problemas,
+               concat('gold ', receita_gold, ' vs silver ', receita_silver,
+                      ' (diferenca ', receita_gold - receita_silver, ')') AS detalhe
+        FROM (
+            SELECT (SELECT sum(receita) FROM gold.clientes_segmentacao) AS receita_gold,
+                   (SELECT sum(receita) FROM silver.vendas) AS receita_silver
+        )
+        """,
+    ),
+    (
+        "gold_clientes_id_unico",
+        """
+        SELECT count(*) AS problemas,
+               concat(count(*), ' id_cliente repetido(s)') AS detalhe
+        FROM (
+            SELECT id_cliente FROM gold.clientes_segmentacao
+            GROUP BY id_cliente HAVING count(*) > 1
+        )
+        """,
+    ),
+    (
+        "gold_clientes_segmento_valido",
+        """
+        SELECT count(*) AS problemas,
+               concat(count(*), ' linha(s) com segmento fora de VIP/TOP_TIER/REGULAR') AS detalhe
+        FROM gold.clientes_segmentacao
+        WHERE segmento_cliente NOT IN ('VIP', 'TOP_TIER', 'REGULAR')
+           OR segmento_cliente IS NULL
+        """,
+    ),
+    (
+        "gold_clientes_vip_acima_de_22000",
+        """
+        SELECT count(*) AS problemas,
+               concat(count(*), ' VIP com receita abaixo de R$ 22.000') AS detalhe
+        FROM gold.clientes_segmentacao
+        WHERE segmento_cliente = 'VIP' AND receita < 22000
+        """,
+    ),
+    (
+        "gold_todas_as_colunas_comentadas",
+        """
+        -- O Genie le os comentarios do catalogo. Coluna sem comentario e coluna que a IA vai
+        -- interpretar por adivinhacao, entao isso e falha de qualidade, nao detalhe cosmetico.
+        --
+        -- O filtro por table_type e de proposito: ao lado de cada materialized view o pipeline
+        -- cria tabelas MANAGED internas (__materialization_mat_<pipeline_id>_<tabela>_N) e, no
+        -- schema padrao, um event_log_<pipeline_id>. Nenhuma delas e tabela de consumo e nenhuma
+        -- tem comentario. Filtrar por tipo em vez de por prefixo de nome mantem o teste valido
+        -- se a Databricks mudar esses prefixos; o NOT LIKE fica como reforco.
+        SELECT count(*) AS problemas,
+               concat(count(*), ' coluna(s) sem comentario em ',
+                      count(DISTINCT c.table_name), ' tabela(s)') AS detalhe
+        FROM information_schema.columns c
+        JOIN information_schema.tables t
+          ON  t.table_catalog = c.table_catalog
+          AND t.table_schema  = c.table_schema
+          AND t.table_name    = c.table_name
+        WHERE c.table_schema = 'gold'
+          AND t.table_type IN ('MATERIALIZED_VIEW', 'STREAMING_TABLE', 'VIEW')
+          AND c.table_name NOT LIKE '\\_\\_materialization%'
+          AND c.table_name NOT LIKE 'event\\_log%'
+          AND (c.comment IS NULL OR trim(c.comment) = '')
+        """,
+    ),
 ]
 
 # COMMAND ----------

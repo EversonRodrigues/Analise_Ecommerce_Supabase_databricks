@@ -54,6 +54,26 @@ If the CLI is not installed, see: https://docs.databricks.com/dev-tools/cli/inst
   fechado de `canal_venda`).
 - Nao use `@dp.expect_or_drop` neste projeto.
 
+### Regras para toda gold (valem para as proximas diretorias)
+
+- SQL, um arquivo por tabela em `transformations/gold/`, com
+  `CREATE OR REFRESH MATERIALIZED VIEW gold.<tabela>`. Nunca `CREATE OR REPLACE`.
+- Declare **todas** as colunas entre parenteses, cada uma com **tipo e `COMMENT`**. Sem o tipo
+  declarado, o Databricks ignora o comentario silenciosamente.
+- `COMMENT` na tabela dizendo **quando usar** a tabela.
+- Comentarios em portugues, sempre com: unidade (R$), regra de calculo e avisos que evitem erro do
+  Genie (o que significa zero, o que significa nulo, quais valores uma coluna categorica assume,
+  o que a coluna NAO e).
+- Inclua **todas** as vendas, inclusive de produto nao cadastrado: dinheiro que entrou e receita.
+- Periodo dos dados: **13/12/2025 a 11/01/2026**. Cite nos comentarios, para o Genie nao inventar
+  resposta sobre meses que nao existem.
+- Toda gold nova ganha testes em `testes/testes_qualidade.py`.
+- Nao declare o schema como `resources.schemas` no bundle: em `mode: development` o DABs prefixa o
+  nome e o schema viraria `dev_<usuario>_gold`, enquanto o codigo continuaria escrevendo em `gold`.
+  Nao e preciso: o proprio pipeline cria o schema de destino que ainda nao existe (o catalogo, sim,
+  precisa pre-existir). Se algum dia for necessario declarar, use
+  `experimental: { skip_name_prefix_for_schema: true }`.
+
 ### Fluxo de trabalho
 
 - Sempre rode `databricks bundle validate --strict -p AnaliseEcommerce` antes do deploy.
