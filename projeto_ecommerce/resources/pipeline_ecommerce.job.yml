@@ -1,0 +1,33 @@
+# Job "Pipeline E-commerce": atualiza a silver e so entao valida o resultado.
+#
+# POR QUE os testes sao uma task separada e nao parte do pipeline:
+#   As expectations do pipeline medem cada tabela durante a escrita. Os testes olham o que ja
+#   foi PUBLICADO e cruzam tabelas -- so fazem sentido depois do commit. Como task encadeada,
+#   um teste vermelho deixa o run inteiro vermelho, que e o sinal que queremos.
+#
+# POR QUE nao ha trigger agendado:
+#   A bronze e sobrescrita por outro processo, em horario que nao controlamos. Agendar aqui
+#   correria o risco de ler a bronze no meio da reescrita. Rodamos sob demanda.
+
+resources:
+  jobs:
+    pipeline_ecommerce:
+      name: Pipeline E-commerce
+
+      parameters:
+        - name: catalogo
+          default: ${var.catalog}
+
+      tasks:
+        - task_key: atualiza_silver
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.projeto_ecommerce_etl.id}
+
+        - task_key: testes_qualidade
+          depends_on:
+            - task_key: atualiza_silver
+          notebook_task:
+            notebook_path: ../testes/testes_qualidade.py
+            source: WORKSPACE
+            base_parameters:
+              catalogo: "{{job.parameters.catalogo}}"

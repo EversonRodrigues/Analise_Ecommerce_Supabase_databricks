@@ -13,8 +13,7 @@ resources:
         - glob:
             include: ../src/projeto_ecommerce_etl/transformations/**
 
-      environment:
-        dependencies:
-          # We include every dependency defined by pyproject.toml by defining an editable environment
-          # that points to the folder where pyproject.toml is deployed.
-          - --editable ${workspace.file_path}
+      # O template trazia aqui um `environment.dependencies: [--editable ${workspace.file_path}]`,
+      # que aponta para um pyproject.toml. Este projeto nao tem pacote Python proprio: as
+      # transformacoes so usam pyspark, ja disponivel no serverless. Manter a dependencia
+      # editable quebraria a instalacao do ambiente.
