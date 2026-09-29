@@ -1,0 +1,23 @@
+# Dashboard "Diretoria de Customer Success": quem sao os melhores clientes e onde estao.
+#
+# As convencoes de dashboard deste projeto (JSON como fonte da verdade, extensao .lvdash.json,
+# dataset_schema literal `gold`) estao explicadas em diretoria_comercial.dashboard.yml.
+#
+# POR QUE o KPI de "% da receita dos VIP" sai de um dataset proprio e sem filtro:
+#   Se ele fosse calculado no mesmo dataset dos filtros, marcar "VIP" no filtro de segmento
+#   faria o KPI ler 100% -- tecnicamente correto e editorialmente inutil. O dataset
+#   ds_vip_share ignora os filtros de proposito, e o titulo do widget diz isso.
+#
+# POR QUE o ticket medio recalcula de somas em vez de usar a coluna ticket_medio:
+#   clientes_segmentacao.ticket_medio e NULL para quem nunca comprou, e media de medias nao e
+#   ticket medio. A regra do projeto e SUM(receita) / SUM(total_compras).
+
+resources:
+  dashboards:
+    diretoria_customer_success:
+      display_name: Diretoria de Customer Success
+      file_path: ../src/dashboards/diretoria_customer_success.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: gold
+      embed_credentials: false

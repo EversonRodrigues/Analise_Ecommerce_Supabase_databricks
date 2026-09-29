@@ -1,0 +1,30 @@
+# Dashboard "Diretoria de Pricing": estamos mais caros que a concorrencia, e onde agir.
+#
+# As convencoes de dashboard deste projeto (JSON como fonte da verdade, extensao .lvdash.json,
+# dataset_schema literal `gold`) estao explicadas em diretoria_comercial.dashboard.yml.
+#
+# POR QUE "sem os suspeitos" esta embutido nas MEASURES e nao em um filtro:
+#   Um filtro widget pode ser desmarcado pelo usuario, e a leitura do KPI mudaria de sentido
+#   sem aviso. Com `AND NOT possui_preco_suspeito` dentro da expressao da measure, o recorte
+#   "confirmado" vale independente do que o diretor faca nos filtros. E a unica forma de o
+#   numero do cabecalho nao mentir.
+#
+# POR QUE nao existe KPI de "receita" neste dashboard:
+#   SUM(receita) de precos_competitividade da R$ 969.837,27, nao a receita da empresa
+#   (R$ 974.077,28): faltam os R$ 4.240,01 dos 20 produtos vendidos que nao estao no catalogo
+#   e, por isso, nao tem preco de concorrente. Um KPI "Receita" aqui seria lido como receita
+#   total e estaria errado. A receita aparece so qualificada: "dos mais caros confirmados".
+#
+# POR QUE o filtro de classificacao NAO se aplica a tabela de acao:
+#   a tabela de acao ja e fixa em MAIS_CARO_QUE_TODOS. Ligar o filtro nela permitiria ao
+#   usuario esvaziar a tabela escolhendo outra classificacao, sem ganho nenhum.
+
+resources:
+  dashboards:
+    diretoria_pricing:
+      display_name: Diretoria de Pricing
+      file_path: ../src/dashboards/diretoria_pricing.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: gold
+      embed_credentials: false

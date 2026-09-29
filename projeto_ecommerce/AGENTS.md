@@ -28,6 +28,13 @@ If the CLI is not installed, see: https://docs.databricks.com/dev-tools/cli/inst
 - Perfil de CLI: `AnaliseEcommerce` (`-p AnaliseEcommerce` em todo comando `databricks`).
 - Obs.: o enunciado original (`.llm/prompt_01.md`) fala em catalogo `projetoaovivo` e perfil
   `imersao`. Nenhum dos dois existe neste workspace; os nomes acima sao os equivalentes reais.
+- Obs.: o `.llm/prompt_05.md` manda dizer no eixo que "data e hora estao em UTC (veja o comentario
+  da coluna)". **O comentario da coluna nao diz isso**: nenhuma das 70 colunas da gold menciona
+  fuso -- `data_venda TIMESTAMP` diz so "Data e hora exatas da venda" e `hora INT` diz so "de 0 a
+  23". O fuso e premissa do enunciado sem respaldo no catalogo, entao os dashboards rotulam
+  "hora do registro da venda" em vez de afirmar UTC. Se o fuso for confirmado na origem,
+  acrescente a nota ao `COMMENT` de `hora` em `vendas_temporais.sql` e `vendas_detalhadas.sql`
+  (mudanca so de comentario) e ai sim rotule os eixos.
 
 ### Convencoes de codigo
 
@@ -74,6 +81,61 @@ If the CLI is not installed, see: https://docs.databricks.com/dev-tools/cli/inst
   precisa pre-existir). Se algum dia for necessario declarar, use
   `experimental: { skip_name_prefix_for_schema: true }`.
 
+### Dashboards AI/BI (prompt_05)
+
+- Um arquivo por dashboard em `src/dashboards/<nome>.lvdash.json`, recurso em
+  `resources/<nome>.dashboard.yml`. **A extensao e `.lvdash.json`**, nao `.ERSdash.json` como diz
+  o enunciado: `lvdash` e a convencao real (o schema da CLI diz que "exported dashboards always
+  have the file extension .lvdash.json"); `ERSdash` nao existe no Databricks.
+- `warehouse_id` vem da variavel do bundle com `lookup: {warehouse: Serverless Starter Warehouse}`.
+  E o unico `lookup` do repo; ele acopla `bundle validate` a existencia do warehouse.
+- Consultas com o nome da tabela **sem catalogo e sem schema** (`FROM vendas_detalhadas`).
+  `dataset_catalog`/`dataset_schema` do YAML sao injetados pelo servidor como `catalog`/`schema`
+  de cada dataset -- conferido comparando o JSON enviado com o `lakeview get`. `dataset_schema` e o
+  literal `gold`, nunca `${var.schema}` (que e `silver` em dev e `prod` em prod).
+- **Nenhum dashboard le `gold.vendas_temporais`**: ela e esparsa (ausencia = zero, nao nulo) e traz
+  `clientes_unicos`, que nao pode ser somado. `vendas_detalhadas` da os mesmos graos no grao da
+  venda, onde `COUNT(*)` e `COUNT(DISTINCT id_cliente)` estao certos por construcao.
+- **Regra de negocio vai na MEASURE do dataset, nao em filtro.** Measure e reavaliada no
+  agrupamento de cada widget, entao `Ticket medio = SUM(receita)/COUNT(id_venda)` nunca vira media
+  de medias, e `AND NOT possui_preco_suspeito` embutido garante o recorte "confirmado" mesmo que o
+  usuario mexa nos filtros. O `description` da measure e o equivalente do `COMMENT` da gold.
+- Dia da semana: ordenar por rotulo prefixado (`1. Domingo` ... `7. Sabado`) e comparar pela
+  **media por dia** (`SUM(receita)/COUNT(DISTINCT data)`). O periodo tem 5 sabados e 5 domingos e
+  so 4 de cada dia util -- pelo total o fim de semana ganha so por ter um dia a mais.
+- Nos KPIs de cabecalho use `"abbreviation": "none"` com 2 decimais exatas. Com `compact`,
+  R$ 974.077,28 vira "R$ 974,08 mil" e o numero deixa de conferir com o BASELINE.
+- `diferenca_pct_*` da gold esta em **pontos percentuais** (10 = 10%) e `number-percent` multiplica
+  por 100: leve uma coluna `.../100` no SQL se for formatar como porcentagem.
+- **`multilineTextboxSpec.lines[]` e concatenado SEM separador**, igual a `queryLines`: cada
+  elemento precisa terminar em `\n`, e separador de paragrafo e um elemento `"\n"` (string vazia e
+  descartada). Sem isso os paragrafos vem grudados num bloco unico. Descoberto comparando o
+  enviado com o devolvido pelo servidor.
+- Grid de **12 colunas**, `x + width <= 12`, sem auto-layout: toda coordenada e calculada a mao e
+  sobreposicao nao e recusada, so renderiza embolado.
+- Em `mode: development` o display_name **e** prefixado (`[dev <usuario>] Diretoria Comercial`).
+  Em prod sai limpo. Inofensivo: dev e prod ficam em pastas diferentes.
+- `bundle deploy` **tambem publica** o dashboard (confirmado com `lakeview get-published`).
+- Editar pela interface e descartavel: o proximo `deploy` sobrescreve. Para manter, exporte com
+  `databricks lakeview get <id> -o json` e traga o diff de volta para o arquivo.
+- Quando o Genie space do prompt_06 existir, o id dele entra fixo no JSON do dashboard para ligar o
+  botao "Ask Genie" -- e muda entre dev e prod.
+
+### Testes dos dashboards
+
+- **`databricks bundle validate --strict` NAO valida o conteudo do `.lvdash.json`.** Ele le o
+  arquivo (falha se nao existir) e valida o YAML, mas JSON valido com `widgetType` errado,
+  `fieldName` inexistente ou `datasetName` com typo deploya limpo e quebra so no navegador.
+  "Deploy passou" nao e evidencia de nada.
+- Rode `python testes/valida_dashboards.py` antes de todo deploy: ele cobre essa lacuna
+  (referencias cruzadas, measures inexistentes, sobreposicao no grid, encoding sem BOM, padroes
+  proibidos, e a regra do `\n` nos textos).
+- Prove o SQL de cada dataset no warehouse **antes** de escrever JSON, e confronte cada measure
+  expandida com o `BASELINE.md`.
+- Depois do deploy, confira que o servidor guardou o que voce escreveu:
+  `databricks lakeview get <id> -o json` e compare o `serialized_dashboard` com o arquivo. A unica
+  diferenca esperada e o `catalog`/`schema` que o YAML injeta.
+
 ### Fluxo de trabalho
 
 - Sempre rode `databricks bundle validate --strict -p AnaliseEcommerce` antes do deploy.
@@ -86,58 +148,7 @@ If the CLI is not installed, see: https://docs.databricks.com/dev-tools/cli/inst
 
 ### Numeros de referencia
 
-Baseline conferido em 25/09/2026 sobre o periodo 13/12/2025 a 11/01/2026. Se um destes numeros
-mudar sem que a bronze tenha mudado, houve regressao -- investigue antes de seguir.
+Os volumes, totais de receita e contagens esperadas ficam em `BASELINE.md`, importado abaixo.
+Confira o resultado do job contra ele: divergencia sem mudanca na bronze e regressao.
 
-**Volumes da silver**
-
-| tabela | linhas |
-|---|---|
-| `silver.vendas` | 3.020 |
-| `silver.produtos` | 215 |
-| `silver.clientes` | 50 |
-| `silver.preco_competidores` | 728 |
-
-**Dinheiro**
-
-- Receita total: **R$ 974.077,28** (bate em `silver.vendas`, `gold.vendas_temporais`,
-  `gold.vendas_produtos` e `gold.vendas_detalhadas`).
-- Canal: ecommerce 2.155 vendas · loja_fisica 865.
-- `gold.precos_competitividade` soma **R$ 969.837,27** de proposito: faltam os R$ 4.240,01 dos
-  produtos nao cadastrados, que nao tem preco de concorrente. Nao e erro.
-
-**Problemas de qualidade marcados (nunca descartados)**
-
-- 20 vendas de produto nao cadastrado -- R$ 4.240,01 (0,662% das vendas).
-- 5 vendas antes da data de criacao do produto -- R$ 325,88.
-- 55 cotacoes de concorrente suspeitas, concentradas em 15 produtos.
-- 11 clientes com pronome de tratamento no nome original.
-- 4 nomes com particula (`da`) corrigida pelo tratamento de caixa.
-
-**Distribuicoes**
-
-- Clientes por regiao: Norte 17 · Nordeste 12 · Centro-Oeste 9 · Sudeste 8 · Sul 4.
-- Segmentos: 10 VIP · 25 TOP_TIER · 15 REGULAR. Maior cliente: Ana Sophia Pereira (MG,
-  R$ 30.716,63).
-- Faixa de preco dos produtos: BASICO 200 · PREMIUM 8 · MEDIO 7.
-- Competitividade: MAIS_CARO_QUE_TODOS 35 · ACIMA_DA_MEDIA 92 · ABAIXO_DA_MEDIA 76 ·
-  NA_MEDIA 6 · MAIS_BARATO_QUE_TODOS 6. Os 15 produtos com preco suspeito estao TODOS em
-  MAIS_CARO_QUE_TODOS -- ou seja, dos 35, 20 sao alta de preco real e 15 dependem de confirmar a
-  cotacao do concorrente.
-
-**Linhas das gold**
-
-| tabela | linhas |
-|---|---|
-| `gold.clientes_segmentacao` | 50 |
-| `gold.vendas_temporais` | 908 |
-| `gold.vendas_produtos` | 205 |
-| `gold.vendas_detalhadas` | 3.020 |
-| `gold.precos_competitividade` | 215 |
-
-**Testes e expectations**
-
-- `testes/testes_qualidade.py`: **18 testes**, todos passando.
-- Expectations com falha esperada (warn, medem problema conhecido): `preco_plausivel` 55,
-  `produto_cadastrado` 20, `venda_depois_do_cadastro` 5. Todas as expectations de **fail** em 0.
-- 70 colunas comentadas nas 5 gold (12 + 15 + 22 + 12 + 9), nenhuma sem comentario.
+@BASELINE.md

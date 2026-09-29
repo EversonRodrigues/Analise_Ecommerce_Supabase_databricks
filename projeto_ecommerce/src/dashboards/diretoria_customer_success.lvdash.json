@@ -1,0 +1,896 @@
+{
+  "datasets": [
+    {
+      "name": "ds_clientes",
+      "displayName": "Carteira de clientes (gold.clientes_segmentacao)",
+      "queryLines": [
+        "SELECT\n",
+        "  id_cliente,\n",
+        "  nome_cliente,\n",
+        "  estado,\n",
+        "  nome_estado,\n",
+        "  regiao,\n",
+        "  segmento_cliente,\n",
+        "  concat(\n",
+        "    CASE segmento_cliente WHEN 'VIP' THEN '1' WHEN 'TOP_TIER' THEN '2' ELSE '3' END,\n",
+        "    '. ', segmento_cliente\n",
+        "  ) AS segmento_ordenado,\n",
+        "  total_compras,\n",
+        "  receita,\n",
+        "  ranking_receita,\n",
+        "  primeira_compra,\n",
+        "  ultima_compra,\n",
+        "  date_format(ultima_compra, 'dd/MM/yyyy') AS ultima_compra_texto\n",
+        "FROM clientes_segmentacao"
+      ],
+      "columns": [
+        {
+          "displayName": "Clientes",
+          "description": "Clientes distintos no recorte. A carteira tem 50 clientes e a tabela inclui quem nunca comprou (receita 0), se houver.",
+          "expression": "COUNT(DISTINCT `id_cliente`)"
+        },
+        {
+          "displayName": "Clientes VIP",
+          "description": "Clientes do segmento VIP, ou seja com receita a partir de R$ 22.000 no periodo. Sao 10 na carteira atual.",
+          "expression": "COUNT(DISTINCT CASE WHEN `segmento_cliente` = 'VIP' THEN `id_cliente` END)"
+        },
+        {
+          "displayName": "Clientes sem compra",
+          "description": "Clientes com total_compras = 0, o publico de ativacao do CS. Hoje vale ZERO: todos os 50 clientes da carteira compraram no periodo. O KPI fica no dashboard como monitor -- se subir, apareceu cliente cadastrado que nunca comprou.",
+          "expression": "COUNT(DISTINCT CASE WHEN `total_compras` = 0 THEN `id_cliente` END)"
+        },
+        {
+          "displayName": "Receita",
+          "description": "Receita total dos clientes do recorte, em reais (R$). Fecha em R$ 974.077,28 para a carteira inteira, igual a receita da empresa no periodo.",
+          "expression": "SUM(`receita`)"
+        },
+        {
+          "displayName": "Compras",
+          "description": "Soma das vendas dos clientes do recorte. Para a carteira inteira da 3.020, o mesmo total de vendas da empresa.",
+          "expression": "SUM(`total_compras`)"
+        },
+        {
+          "displayName": "Ticket medio",
+          "description": "Valor medio de UMA compra, em reais (R$). Calculo: receita dividida pelo numero de compras -- NUNCA a media da coluna ticket_medio, que seria media de medias e ainda e nula para quem nunca comprou. Carteira inteira: R$ 322,54.",
+          "expression": "SUM(`receita`) / NULLIF(SUM(`total_compras`), 0)"
+        },
+        {
+          "displayName": "Receita por cliente",
+          "description": "Receita dividida pelo numero de clientes do recorte, em reais (R$). Mede o valor de um cliente, nao de uma compra. Serve para comparar regioes de tamanhos diferentes: uma regiao pode faturar menos no total e ter cliente mais valioso.",
+          "expression": "SUM(`receita`) / COUNT(DISTINCT `id_cliente`)"
+        }
+      ]
+    },
+    {
+      "name": "ds_vip_share",
+      "displayName": "Participacao dos VIP na receita, sempre do periodo completo",
+      "queryLines": [
+        "SELECT\n",
+        "  SUM(CASE WHEN segmento_cliente = 'VIP' THEN receita ELSE 0 END)\n",
+        "    / SUM(receita) AS receita_vip_pct\n",
+        "FROM clientes_segmentacao"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "pagina_cs",
+      "displayName": "Customer Success",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "titulo",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Diretoria de Customer Success"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "subtitulo",
+            "multilineTextboxSpec": {
+              "lines": [
+                "**50 clientes, R$ 974.077,28 de 13/12/2025 a 11/01/2026** · fonte `gold.clientes_segmentacao`, uma linha por cliente · valores em reais (R$)\n",
+                "\n",
+                "Segmentos por receita no periodo: **VIP** a partir de R$ 22.000, **TOP_TIER** de R$ 17.000 a R$ 21.999,99, **REGULAR** abaixo de R$ 17.000. A tabela inclui de proposito clientes que nunca compraram (receita 0) -- hoje nao ha nenhum.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filtro_segmento",
+            "queries": [
+              {
+                "name": "filtro_segmento_ds_clientes",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "segmento_cliente",
+                      "expression": "`segmento_cliente`"
+                    },
+                    {
+                      "name": "segmento_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "segmento_cliente",
+                    "displayName": "Segmento",
+                    "queryName": "filtro_segmento_ds_clientes"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Segmento",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filtro_regiao",
+            "queries": [
+              {
+                "name": "filtro_regiao_ds_clientes",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "regiao",
+                      "expression": "`regiao`"
+                    },
+                    {
+                      "name": "regiao_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "regiao",
+                    "displayName": "Regiao",
+                    "queryName": "filtro_regiao_ds_clientes"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Regiao",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 3,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_clientes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "measure(Clientes)",
+                      "expression": "MEASURE(`Clientes`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(Clientes)",
+                  "displayName": "Clientes",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "title": "Clientes na carteira",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_clientes_vip",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "measure(Clientes VIP)",
+                      "expression": "MEASURE(`Clientes VIP`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(Clientes VIP)",
+                  "displayName": "Clientes VIP",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "title": "Clientes VIP (receita = R$ 22.000)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 5,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_pct_vip",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_vip_share",
+                  "fields": [
+                    {
+                      "name": "receita_vip_pct",
+                      "expression": "`receita_vip_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "receita_vip_pct",
+                  "displayName": "% da receita nos VIP",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "title": "% da receita nos VIP — periodo completo, NAO responde aos filtros",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 5,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_ticket",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "measure(Ticket medio)",
+                      "expression": "MEASURE(`Ticket medio`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(Ticket medio)",
+                  "displayName": "Ticket medio",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "title": "Ticket medio (receita / compras)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 5,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "clientes_por_segmento",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "segmento_ordenado",
+                      "expression": "`segmento_ordenado`"
+                    },
+                    {
+                      "name": "measure(Clientes)",
+                      "expression": "MEASURE(`Clientes`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "segmento_ordenado",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x"
+                    }
+                  },
+                  "displayName": "Segmento"
+                },
+                "y": {
+                  "fieldName": "measure(Clientes)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Clientes"
+                }
+              },
+              "frame": {
+                "title": "Clientes por segmento",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 4,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "receita_por_segmento",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "segmento_cliente",
+                      "expression": "`segmento_cliente`"
+                    },
+                    {
+                      "name": "measure(Receita)",
+                      "expression": "MEASURE(`Receita`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(Receita)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Receita (R$)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "segmento_cliente",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Segmento"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              },
+              "frame": {
+                "title": "Receita por segmento",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 8,
+            "width": 4,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "ticket_por_segmento",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "segmento_ordenado",
+                      "expression": "`segmento_ordenado`"
+                    },
+                    {
+                      "name": "measure(Ticket medio)",
+                      "expression": "MEASURE(`Ticket medio`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "segmento_ordenado",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x"
+                    }
+                  },
+                  "displayName": "Segmento"
+                },
+                "y": {
+                  "fieldName": "measure(Ticket medio)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Ticket medio (R$)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "title": "Ticket medio por segmento (tamanho da compra, nao do cliente)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 8,
+            "width": 4,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "receita_por_regiao",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "regiao",
+                      "expression": "`regiao`"
+                    },
+                    {
+                      "name": "measure(Receita)",
+                      "expression": "MEASURE(`Receita`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "measure(Receita)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Receita (R$)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "regiao",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  },
+                  "displayName": "Regiao"
+                }
+              },
+              "frame": {
+                "title": "Receita por regiao (total)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "receita_por_cliente_regiao",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "regiao",
+                      "expression": "`regiao`"
+                    },
+                    {
+                      "name": "measure(Receita por cliente)",
+                      "expression": "MEASURE(`Receita por cliente`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "measure(Receita por cliente)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Receita por cliente (R$)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "regiao",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  },
+                  "displayName": "Regiao"
+                }
+              },
+              "frame": {
+                "title": "Receita POR CLIENTE por regiao (compara regioes de tamanhos diferentes)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 13,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "tabela_ranking_clientes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "ranking_receita",
+                      "expression": "`ranking_receita`"
+                    },
+                    {
+                      "name": "nome_cliente",
+                      "expression": "`nome_cliente`"
+                    },
+                    {
+                      "name": "estado",
+                      "expression": "`estado`"
+                    },
+                    {
+                      "name": "regiao",
+                      "expression": "`regiao`"
+                    },
+                    {
+                      "name": "segmento_cliente",
+                      "expression": "`segmento_cliente`"
+                    },
+                    {
+                      "name": "total_compras",
+                      "expression": "`total_compras`"
+                    },
+                    {
+                      "name": "receita",
+                      "expression": "`receita`"
+                    },
+                    {
+                      "name": "ultima_compra_texto",
+                      "expression": "`ultima_compra_texto`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "ranking_receita",
+                    "displayName": "#",
+                    "order": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "fieldName": "nome_cliente",
+                    "displayName": "Cliente",
+                    "order": 1,
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "estado",
+                    "displayName": "UF",
+                    "order": 2,
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "regiao",
+                    "displayName": "Regiao",
+                    "order": 3,
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "segmento_cliente",
+                    "displayName": "Segmento",
+                    "order": 4,
+                    "type": "string"
+                  },
+                  {
+                    "fieldName": "total_compras",
+                    "displayName": "Compras",
+                    "order": 5,
+                    "type": "integer"
+                  },
+                  {
+                    "fieldName": "receita",
+                    "displayName": "Receita",
+                    "order": 6,
+                    "type": "float",
+                    "cellFormat": {
+                      "default": {
+                        "foregroundColor": null,
+                        "format": {
+                          "type": "number-currency",
+                          "currencyCode": "BRL",
+                          "abbreviation": "none",
+                          "decimalPlaces": {
+                            "type": "exact",
+                            "places": 2
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "ultima_compra_texto",
+                    "displayName": "Ultima compra",
+                    "order": 7,
+                    "type": "string"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Ranking de clientes (responde aos filtros; ordene clicando em Receita)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "separador_insights",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Leitura rapida e proximos passos"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 26,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "insights",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Conclusoes do **periodo completo** (13/12/2025 a 11/01/2026). Este texto e fixo: nao acompanha os filtros acima.\n",
+                "\n",
+                "**1. O maior bloco de receita nao e o VIP, e o TOP_TIER.** Os 10 VIP respondem por R$ 262.806,22 (27,0%), mas os 25 TOP_TIER somam R$ 493.061,13 -- **50,6% de toda a receita**. Uma estrategia focada so nos VIP cuida de um quarto do faturamento e deixa metade dele sem dono.\n",
+                "\n",
+                "**2. O que separa um VIP nao e comprar mais vezes, e comprar maior.** O ticket medio sobe de R$ 256,42 no REGULAR para R$ 324,38 no TOP_TIER e R$ 404,94 no VIP. O cliente numero 1 (Ana Sophia Pereira, MG, R$ 30.716,63) tem 53 compras, enquanto o numero 3 (Murilo da Mata, RR) tem 81 e fatura menos. Caminho de crescimento: aumentar o valor do carrinho do TOP_TIER, nao a frequencia.\n",
+                "\n",
+                "**3. Norte lidera no total, Sudeste lidera por cliente.** Norte faz R$ 333.078,69 com 17 clientes (R$ 19.592,86 cada); Sudeste faz R$ 171.692,35 com apenas 8, mas R$ 21.461,54 por cliente -- o cliente mais valioso da base. Norte e resultado de carteira maior; Sudeste e uma carteira pequena e eficiente, ou seja a regiao com maior retorno esperado para aquisicao.\n",
+                "\n",
+                "**4. Nao ha cliente para reativar, e isso e um dado.** Os 50 clientes compraram, e todos compraram entre 09 e 11/01/2026 -- o fim do periodo. Nao existe sinal de churn ou de inatividade nesta base, entao o KPI \"Clientes sem compra\" vale zero e fica como monitor. Se ele subir, apareceu cadastro sem conversao.\n",
+                "\n",
+                "**Acao sugerida:** montar uma trilha de aumento de carrinho para os 25 TOP_TIER (o bloco de 50,6% da receita) e priorizar aquisicao no Sudeste, onde cada cliente novo vale mais. Cuidado ao filtrar por segmento: o KPI de % da receita nos VIP ignora os filtros de proposito, para nao passar a ler 100%.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 27,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ]
+    }
+  ]
+}

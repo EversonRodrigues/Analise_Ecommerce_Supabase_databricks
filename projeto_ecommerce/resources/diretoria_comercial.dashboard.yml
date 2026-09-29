@@ -1,0 +1,30 @@
+# Dashboard "Diretoria Comercial": quanto vendemos, quando, em qual canal e com quais produtos.
+#
+# POR QUE o dashboard e um .lvdash.json versionado e nao uma edicao na interface:
+#   O JSON e a fonte da verdade. Editar pela UI cria uma versao que o proximo `bundle deploy`
+#   sobrescreve. Para manter uma mudanca feita na UI, exporte com
+#   `databricks lakeview get <id> -o json` e traga o diff de volta para o arquivo.
+#
+# POR QUE a extensao e .lvdash.json e nao .ERSdash.json (como pede o enunciado):
+#   .lvdash.json e a convencao real do Databricks -- o proprio schema da CLI diz que
+#   "exported dashboards always have the file extension .lvdash.json". ERSdash nao existe.
+#
+# POR QUE dataset_schema e o literal `gold` e nao ${var.schema}:
+#   var.schema e `silver` em dev e `prod` em prod, mas a gold e publicada em `gold` nos dois
+#   targets. Mesmo raciocinio do comentario da pipeline. Sem esta nota, parece bug.
+#
+# POR QUE nenhum dashboard deste projeto le gold.vendas_temporais:
+#   vendas_temporais e esparsa (combinacao sem venda nao tem linha, e ausencia significa zero,
+#   nao dado faltante) e traz clientes_unicos, que nao pode ser somado entre linhas. Ja
+#   vendas_detalhadas tem data, hora, dia_semana e canal no grao da venda, onde COUNT(*) e
+#   COUNT(DISTINCT id_cliente) simplesmente batem. Nao mude isso para "economizar" leitura.
+
+resources:
+  dashboards:
+    diretoria_comercial:
+      display_name: Diretoria Comercial
+      file_path: ../src/dashboards/diretoria_comercial.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: gold
+      embed_credentials: false

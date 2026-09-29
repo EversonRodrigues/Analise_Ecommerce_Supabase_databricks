@@ -13,6 +13,17 @@ variables:
     description: The catalog to use
   schema:
     description: The schema to use
+  # POR QUE o warehouse vem de lookup pelo nome e nao do id literal:
+  #   O id (47307f0445a667ac neste workspace) e opaco e muda se o warehouse for recriado.
+  #   Com lookup, o bundle resolve pelo nome no validate e falha ALTO se o warehouse for
+  #   renomeado ou apagado, em vez de deployar um dashboard que nao consulta nada.
+  # ATENCAO ao efeito colateral: com este lookup declarado, o warehouse passa a ser
+  #   dependencia de qualquer `bundle validate` -- inclusive dos deploys da pipeline, que
+  #   por si nao precisam de warehouse. E a troca desejada (falha alta > dashboard mudo).
+  warehouse_id:
+    description: SQL warehouse que executa as consultas dos dashboards
+    lookup:
+      warehouse: Serverless Starter Warehouse
 
 targets:
   dev:
