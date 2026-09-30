@@ -1,0 +1,121 @@
+{
+  "version": 2,
+  "data_sources": {
+    "tables": [
+      { "identifier": "projetoecomerce.gold.clientes_segmentacao" },
+      { "identifier": "projetoecomerce.gold.precos_competitividade" },
+      { "identifier": "projetoecomerce.gold.vendas_detalhadas" },
+      { "identifier": "projetoecomerce.gold.vendas_produtos" },
+      { "identifier": "projetoecomerce.gold.vendas_temporais" }
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "011f5da6225943228c414ccce3a87c32",
+        "content": [
+          "Quem pergunta: os diretores Comercial, de Customer Success e de Pricing. Não escrevem SQL. Responda em português, dinheiro em R$ com 2 casas (R$ 974.077,28), e explique o número em uma ou duas frases.\n",
+          "PERÍODO: 13/12/2025 a 11/01/2026, e não existe dado fora disso. \"No mês\", \"no período\" e \"até agora\" são o período inteiro. Nunca current_date() nem now().\n",
+          "\"Hoje\", \"ontem\", \"esta semana\" e \"este mês\" NÃO se respondem: 11/01/2026 não é hoje. Não gere SQL; diga qual é o período e pergunte se quer ver 11/01/2026, o último dia com vendas.\n",
+          "RECEITA é bruta. Não há custo, margem, lucro, desconto nem imposto: se perguntarem, diga que não existe aqui e não estime.\n",
+          "QUAL TABELA: tempo, hora e canal -> vendas_temporais. Produto -> vendas_produtos. Cliente, estado, região e segmento -> clientes_segmentacao. Preço de concorrente -> precos_competitividade. Cruzamento entre diretorias -> vendas_detalhadas.\n",
+          "TICKET MÉDIO é receita ÷ número de vendas, nunca média de médias: SUM(receita)/SUM(total_vendas) em vendas_temporais e vendas_produtos, SUM(receita)/COUNT(*) em vendas_detalhadas, SUM(receita)/SUM(total_compras) em clientes_segmentacao.\n",
+          "Conte produto por id_produto, porque há nomes repetidos. Nunca some clientes_unicos.\n",
+          "Em \"qual X vende mais\", traga sempre receita, número de vendas e ticket médio.\n",
+          "Toda pergunta por REGIÃO, ESTADO ou SEGMENTO é obrigada a trazer também o número de clientes, COUNT(DISTINCT id_cliente) em vendas_detalhadas. Sem isso a resposta está incompleta.\n",
+          "DIA DA SEMANA: compare pela receita média por dia, SUM(receita)/COUNT(DISTINCT data), porque há 5 sábados e 5 domingos e só 4 de cada dia útil. Diga também qual lidera no total e que é por ter um dia a mais.\n",
+          "SEGMENTOS: VIP a partir de R$ 22.000 de receita no período, TOP_TIER de R$ 17.000 a R$ 21.999,99, REGULAR abaixo disso.\n",
+          "PREÇO: \"mais caro que o mercado\" é diferenca_pct_vs_media > 0; \"mais caro que todos\" é classificacao_preco = 'MAIS_CARO_QUE_TODOS'. Toda contagem em precos_competitividade separa os confirmados dos que têm possui_preco_suspeito = true (cotação a confirmar), diz em que categoria estão os suspeitos e dá o total.\n",
+          "JOINS: vendas_produtos x precos_competitividade por id_produto (um para um); vendas_detalhadas x clientes_segmentacao por id_cliente (muitos para um). Não há outro join.\n",
+          "SINÔNIMOS: faturamento = receita, UF = estado, canal = canal_venda, perfil = segmento_cliente, posição de preço = classificacao_preco.\n",
+          "Exiba canal como \"E-commerce\" e \"Loja física\". Rankings com 10 linhas."
+        ]
+      }
+    ],
+    "example_question_sqls": [
+      {
+        "id": "0258156ce2e56ae7359af7b5d4a38a69",
+        "question": ["Qual o ticket médio de cada segmento de cliente?"],
+        "sql": [
+          "-- Ticket medio e receita / numero de vendas. AVG(ticket_medio) seria media de medias.\n",
+          "SELECT segmento_cliente,\n",
+          "       COUNT(*)                                     AS clientes,\n",
+          "       SUM(total_compras)                           AS vendas,\n",
+          "       SUM(receita)                                 AS receita,\n",
+          "       ROUND(SUM(receita) / SUM(total_compras), 2)  AS ticket_medio\n",
+          "FROM   projetoecomerce.gold.clientes_segmentacao\n",
+          "GROUP  BY segmento_cliente\n",
+          "ORDER  BY receita DESC"
+        ]
+      },
+      {
+        "id": "03b9d6688548fa18e751a5bf5505ce71",
+        "question": ["Quanto os clientes TOP_TIER representam da receita?"],
+        "sql": [
+          "-- Participacao e sempre sobre a receita TOTAL da empresa: o denominador nao pode herdar\n",
+          "-- o WHERE do numerador, senao qualquer segmento daria 100%.\n",
+          "SELECT COUNT(*)            AS clientes_top_tier,\n",
+          "       SUM(receita)        AS receita_top_tier,\n",
+          "       ROUND(100 * SUM(receita) /\n",
+          "             (SELECT SUM(receita) FROM projetoecomerce.gold.clientes_segmentacao), 1) AS pct_da_receita\n",
+          "FROM   projetoecomerce.gold.clientes_segmentacao\n",
+          "WHERE  segmento_cliente = 'TOP_TIER'"
+        ]
+      },
+      {
+        "id": "0485b95513db1853a87141d4653f2357",
+        "question": ["Qual a receita por região e categoria?"],
+        "sql": [
+          "-- vendas_detalhadas e a unica gold com regiao (do cliente) e categoria (do produto) na\n",
+          "-- mesma linha: e a tabela de toda pergunta que cruza diretorias.\n",
+          "-- Note o COUNT(DISTINCT id_cliente): pergunta por regiao, estado ou segmento traz sempre o\n",
+          "-- numero de clientes junto da receita. Nunca somar clientes_unicos.\n",
+          "SELECT regiao,\n",
+          "       categoria,\n",
+          "       COUNT(*)                    AS vendas,\n",
+          "       SUM(receita)                AS receita,\n",
+          "       COUNT(DISTINCT id_cliente)  AS clientes\n",
+          "FROM   projetoecomerce.gold.vendas_detalhadas\n",
+          "GROUP  BY regiao, categoria\n",
+          "ORDER  BY receita DESC\n",
+          "LIMIT  10"
+        ]
+      },
+      {
+        "id": "057909f230a46928b74b0eb81894fcc9",
+        "question": ["Quantos produtos estão mais caros que a média do mercado?"],
+        "sql": [
+          "-- Contagem de preco NUNCA sai num numero so: uma linha por situacao, o total, e a categoria\n",
+          "-- dos suspeitos -- o diretor precisa saber quanto do total depende de confirmar a cotacao.\n",
+          "SELECT CASE WHEN possui_preco_suspeito THEN 'a confirmar' ELSE 'confirmado' END AS situacao,\n",
+          "       COUNT(*)                                            AS produtos,\n",
+          "       concat_ws(', ', sort_array(collect_set(categoria)))  AS categorias,\n",
+          "       SUM(COUNT(*)) OVER ()                               AS total_produtos\n",
+          "FROM   projetoecomerce.gold.precos_competitividade\n",
+          "WHERE  diferenca_pct_vs_media > 0\n",
+          "GROUP  BY possui_preco_suspeito\n",
+          "ORDER  BY situacao"
+        ]
+      }
+    ],
+    "sql_snippets": {
+      "measures": [
+        {
+          "id": "060a5503bd2d1250032d66c86d92469d",
+          "display_name": "Ticket médio",
+          "sql": ["ROUND(SUM(receita) / SUM(total_vendas), 2)"]
+        }
+      ]
+    }
+  },
+  "config": {
+    "sample_questions": [
+      { "id": "07c8ca30ba1052f7ec0bafff45676faf", "question": ["Em quais horas do dia vendemos mais?"] },
+      { "id": "089abc5719325799fd91918bcb74c620", "question": ["Quantos itens vendemos por categoria?"] },
+      { "id": "0915dd319f919b37273b890efcccc8de", "question": ["Em quais estados estão os clientes TOP_TIER?"] },
+      { "id": "1039d73b442f5f5c02645b13c8c17893", "question": ["Quais clientes estão há mais tempo sem comprar?"] },
+      { "id": "11a119875747caaf42fdceb1cdc0e42d", "question": ["Quais produtos estão mais baratos que todos os concorrentes?"] },
+      { "id": "12ba5ef3052e9f81d909f4ff3b33f71f", "question": ["Qual a diferença média de preço contra o mercado por categoria, sem os preços suspeitos?"] }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+# Genie space "Diretoria E-commerce": um unico agente para as tres diretorias, em cima da gold.
+#
+# POR QUE o campo e `title` e nao `display_name`:
+#   Dashboard usa display_name; genie_space usa title. Nao e escolha de estilo -- `display_name`
+#   aqui e recusado pelo schema do bundle.
+#
+# POR QUE `parent_path: ${workspace.root_path}`:
+#   Sem isso o space nasce na raiz da pasta do usuario e colide com outro space de mesmo nome.
+#   ATENCAO: `parent_path` e IMUTAVEL -- mudar recria o recurso, o que gera um space_id novo, e o
+#   space_id esta fixo nos 3 dashboards (veja src/dashboards/*.lvdash.json). Errar aqui custa um
+#   ajuste nos tres arquivos.
+#
+# POR QUE o JSON tem os nomes de tabela com catalogo (projetoecomerce.gold.<tabela>) enquanto todo
+# o resto do repo escreve so `schema.tabela`:
+#   O .geniespace.json nao passa por variaveis do bundle -- nada de ${var.catalog} la dentro. Aqui
+#   isso e inofensivo: dev e prod usam o mesmo catalogo e a gold sempre mora em `gold`. Mas e o
+#   motivo de o arquivo parecer fora do padrao.
+#
+# POR QUE nao editar pela interface:
+#   O proximo `bundle deploy` sobrescreve. Para trazer de volta uma mudanca feita na UI:
+#   `databricks genie get-space <id> --include-serialized-space -o json` (ou
+#   `databricks bundle generate genie-space --resource diretoria_ecommerce --force`) e levar o diff
+#   para o arquivo.
+#
+# Em `mode: development` o title sai prefixado (`[dev <usuario>] Diretoria E-commerce`), igual aos
+# dashboards. Em prod sai limpo.
+
+resources:
+  genie_spaces:
+    diretoria_ecommerce:
+      title: Diretoria E-commerce
+      description: >-
+        Perguntas em portugues sobre vendas, clientes e preco de concorrente, em cima das 5 tabelas
+        da gold. Periodo dos dados: 13/12/2025 a 11/01/2026.
+      warehouse_id: ${var.warehouse_id}
+      parent_path: ${workspace.root_path}
+      file_path: ../src/genie/diretoria_ecommerce.geniespace.json

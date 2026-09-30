@@ -1,0 +1,12 @@
+:root{
+--space-0:0;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--space-16:64px;--space-20:80px;--space-24:96px;
+
+--radius-xs:6px;--radius-sm:10px;--radius-md:14px;--radius-lg:20px;--radius-xl:28px;--radius-pill:999px;
+
+--container-max:1280px;--gutter:32px;--gutter-mobile:20px;
+--header-h:76px;--control-sm:36px;--control-md:44px;--control-lg:52px;
+
+/* Semantic */
+--gap-inline:var(--space-2);--gap-stack:var(--space-4);--gap-section:var(--space-16);
+--pad-card:var(--space-5);--pad-section:var(--space-12);
+}

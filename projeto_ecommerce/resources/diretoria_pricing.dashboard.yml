@@ -22,7 +22,7 @@
 resources:
   dashboards:
     diretoria_pricing:
-      display_name: Diretoria de Pricing
+      display_name: Vitrine · Diretoria de Pricing
       file_path: ../src/dashboards/diretoria_pricing.lvdash.json
       warehouse_id: ${var.warehouse_id}
       dataset_catalog: ${var.catalog}

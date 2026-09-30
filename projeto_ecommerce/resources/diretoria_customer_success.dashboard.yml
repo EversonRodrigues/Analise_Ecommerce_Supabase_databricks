@@ -15,7 +15,7 @@
 resources:
   dashboards:
     diretoria_customer_success:
-      display_name: Diretoria de Customer Success
+      display_name: Vitrine · Diretoria de Customer Success
       file_path: ../src/dashboards/diretoria_customer_success.lvdash.json
       warehouse_id: ${var.warehouse_id}
       dataset_catalog: ${var.catalog}

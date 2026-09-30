@@ -13,12 +13,28 @@ Este repositorio e um envelope para um unico Databricks Asset Bundle: `projeto_e
   total, contagens dos problemas de qualidade conhecidos. Separado de proposito, porque e o unico
   arquivo de instrucoes que muda quando a bronze muda. Importado pelo AGENTS.md.
 
+O AGENTS.md abre pedindo para ler a skill `databricks-core` (das Databricks AI Tools) antes de
+qualquer acao; se ela nao estiver disponivel, `databricks aitools install`.
+
+`Skills/` guarda as duas skills que **mandam** na aparencia e na mecanica dos dashboards, e nao sao
+opcionais: `databricks-aibi-dashboards` (estrutura do `.lvdash.json`: versao de cada widget, campos
+de `uiSettings.theme`, `uiSettings.genieSpace`, o que vale em `mappings`) e `Vitrine Design System`
+(cor, tipografia, raio e **tom de voz** da empresa; tokens em `tokens/colors.css`). Leia as duas
+antes de tocar em cor, fonte ou texto de dashboard -- a secao "Aparencia: Vitrine Design System" do
+AGENTS.md resume o que ja foi decidido a partir delas.
+
+Os dois READMEs **nao** sao fonte de verdade: o da raiz esta vazio e o de `projeto_ecommerce/` e
+boilerplate do template `lakeflow-pipelines` -- ele fala de `resources/sample_job.job.yml` e de um
+job agendado diariamente, que nao existem aqui (ver "Pegadinhas": este projeto nao tem trigger).
+
 `.llm/prompt_01.md` ... `prompt_06.md` sao os enunciados originais do exercicio, na ordem em que o
 projeto foi construido (silver, gold CS, gold Comercial, gold Pricing, dashboards, Genie space).
 Eles citam catalogo `projetoaovivo` e perfil `imersao`, que **nao existem** neste workspace; os
 nomes reais estao no AGENTS.md. O prompt_05 esta implementado em `src/dashboards/` (3 dashboards
 AI/BI, com extensao `.lvdash.json` e nao `.ERSdash.json` -- veja a secao de dashboards do
-AGENTS.md). O prompt_06 (Genie space) ainda nao: nao existe `src/genie/`.
+AGENTS.md). O prompt_06 tambem: o Genie space "Diretoria E-commerce" esta em
+`src/genie/diretoria_ecommerce.geniespace.json`, com o placar das rodadas de teste em
+`src/genie/PLACAR.md` e as convencoes na secao "Genie space" do AGENTS.md.
 
 ## Comandos
 
@@ -49,7 +65,18 @@ o conteudo do `.lvdash.json`:
 
 ```bash
 python testes/valida_dashboards.py
+python testes/valida_genie.py        # mesma lacuna, para o .geniespace.json
 ```
+
+Alem de referencias cruzadas e sobreposicao no grid, ele recusa uma lista de **padroes proibidos**
+que sao decisoes do projeto, nao estilo: `current_date`, `clientes_unicos`, `AVG(ticket_medio)`,
+`FROM <schema>.<tabela>` qualificado e qualquer mencao a `vendas_temporais`. Se o validador
+reclamar de um deles, a correcao e mudar a consulta -- nao o validador.
+
+Ele tambem cobra o padrao visual da empresa: `uiSettings.theme` identico ao do Vitrine Design System,
+cor pinada so com token do DS, `uiSettings.genieSpace` apontando para o mesmo space nos tres, e copy
+**com acento** e sem CAIXA ALTA de enfase (texto de dashboard e interface; a convencao "sem acento"
+do repo vale para SQL, nome de campo e commit, nao para o que o diretor le).
 
 Para rodar SQL no warehouse: o MCP do Databricks responde 401 aqui (token nao enviado); use a CLI,
 que autentica pelo perfil. E passe o SQL por **arquivo**, nunca por `echo` -- o shell deste
@@ -77,6 +104,15 @@ Medalhao bronze -> silver -> gold em um unico Lakeflow Declarative Pipeline serv
 - **gold** (`transformations/gold/*.sql`, uma tabela por diretoria) -- consumida por dashboard
   AI/BI e pelo Genie, entao cada coluna carrega tipo + `COMMENT` explicando unidade, regra de
   calculo e armadilhas (o que significa zero/nulo, o que nao somar).
+  Quem consome o que (5 golds, 3 dashboards): CS le `clientes_segmentacao`; Comercial le
+  `vendas_produtos` e `vendas_detalhadas`; Pricing le `precos_competitividade`.
+  `vendas_temporais` existe, e testada e entra no Genie space, mas **nenhum dashboard a le**
+  (esparsa + `clientes_unicos` nao somavel) -- o motivo esta no topo de
+  `resources/diretoria_comercial.dashboard.yml`.
+- **genie** (`src/genie/diretoria_ecommerce.geniespace.json`) -- um Genie space para as tres
+  diretorias, sobre as 5 golds. Testado por `testes/placar_genie.py` (10 perguntas com numero
+  conhecido + 2 que ele deve recusar); as rodadas estao em `src/genie/PLACAR.md`. Os 3 dashboards
+  linkam para ele pelo widget `ask_genie`, com o `space_id` fixo no JSON.
 - **testes** (`testes/testes_qualidade.py`) -- roda **depois** do pipeline, sobre o que foi
   publicado, cruzando tabelas; e a checagem que as expectations (que olham uma tabela por vez,
   durante a escrita) nao conseguem fazer.
@@ -104,3 +140,11 @@ ele vem do pipeline, o que deixa o mesmo codigo valido em dev e prod.
   `BASELINE.md` antes de "consertar" uma expectation vermelha.
 - Periodo dos dados: **13/12/2025 a 11/01/2026**. Nunca use `current_date()` em codigo, consulta
   de dashboard ou instrucao de Genie.
+- Codigo, nomes e mensagens de commit em portugues **sem acento**; os **dados**, sim, tem acento
+  (`Tênis`, `Produto não cadastrado`). Por isso os `.lvdash.json` precisam ser UTF-8 **sem BOM**:
+  BOM quebra o parse e ANSI mangla o acento, e o rotulo sem acento casa zero linhas em silencio.
+- `var.schema` e o schema **da silver** e vale `silver` em dev e `prod` em prod; as golds e o
+  `dataset_schema` dos dashboards sao o literal `gold` nos dois targets. Nao troque um pelo outro.
+- O id do warehouse (`47307f0445a667ac`) e opaco e muda se o warehouse for recriado -- ele aparece
+  literal apenas nas chamadas manuais de API acima. O bundle resolve por `lookup` no nome
+  "Serverless Starter Warehouse"; se uma chamada manual der 404, releia o id do workspace.

@@ -61,3 +61,13 @@ mesmo commit que reconhece a mudanca, com a nova data de conferencia.
 - Expectations com falha esperada (warn, medem problema conhecido): `preco_plausivel` 55,
   `produto_cadastrado` 20, `venda_depois_do_cadastro` 5. Todas as expectations de **fail** em 0.
 - 70 colunas comentadas nas 5 gold (12 + 15 + 22 + 12 + 9), nenhuma sem comentario.
+
+**Genie space "Diretoria E-commerce"** (`python testes/placar_genie.py`)
+
+- Placar: **10/10** perguntas numericas + **2/2** perguntas de limite (lucro e "ontem", que o Genie
+  deve recusar). Conferido em 30/09/2026, em duas execucoes seguidas.
+- Numeros que o placar cobra e que nao aparecem acima: categoria de maior receita **Moda,
+  R$ 248.124,15**; quarta-feira lidera a **media por dia com R$ 34.753,61** (sabado lidera o total
+  so por ter 5 no periodo); dos 10 produtos que mais faturam, **5** estao acima da media do mercado
+  (Camisa Social, Persiana Vertical, Shorts Jeans, Vestido Floral, Notebook Inspiron 15).
+- Instrucoes gerais do space: 2.481 caracteres (teto do projeto: 2.500).

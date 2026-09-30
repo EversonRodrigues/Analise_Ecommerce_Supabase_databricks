@@ -2,7 +2,7 @@
   "datasets": [
     {
       "name": "ds_precos",
-      "displayName": "Competitividade de preco por produto (gold.precos_competitividade)",
+      "displayName": "Competitividade de preço por produto (gold.precos_competitividade)",
       "queryLines": [
         "SELECT\n",
         "  id_produto,\n",
@@ -26,34 +26,34 @@
       "columns": [
         {
           "displayName": "Produtos monitorados",
-          "description": "Produtos distintos com pelo menos uma cotacao de concorrente, contados por id_produto. Sao 215 no total. ATENCAO: nao e o catalogo inteiro nem o numero de produtos vendidos (205) -- sao populacoes diferentes.",
+          "description": "Produtos distintos com pelo menos uma cotação de concorrente, contados por id_produto. São 215 no total. Atenção: não é o catálogo inteiro nem o número de produtos vendidos (205) — são populações diferentes.",
           "expression": "COUNT(DISTINCT `id_produto`)"
         },
         {
           "displayName": "Mais caros que todos (confirmados)",
-          "description": "Produtos acima do MAIOR preco de todos os concorrentes, excluindo os que tem cotacao suspeita. Sao 20 dos 35 classificados como MAIS_CARO_QUE_TODOS. O recorte \"sem suspeitos\" esta dentro da measure de proposito: vale mesmo que o usuario mexa nos filtros.",
+          "description": "Produtos acima do **maior** preço de todos os concorrentes, excluindo os que têm cotação suspeita. São 20 dos 35 classificados como MAIS_CARO_QUE_TODOS. O recorte \"sem suspeitos\" está dentro da measure de propósito: vale mesmo que você mexa nos filtros.",
           "expression": "COUNT(DISTINCT CASE WHEN `classificacao_preco` = 'MAIS_CARO_QUE_TODOS' AND NOT `possui_preco_suspeito` THEN `id_produto` END)"
         },
         {
           "displayName": "Receita dos mais caros confirmados",
-          "description": "Receita, em reais (R$), dos produtos confirmadamente mais caros que todos os concorrentes: R$ 161.375,09. E a receita que fica exposta se um concorrente ficar agressivo. NAO e a receita da empresa.",
+          "description": "Receita, em reais (R$), dos produtos confirmadamente mais caros que todos os concorrentes: R$ 161.375,09. É a receita que fica exposta se um concorrente ficar agressivo. Não é a receita da empresa.",
           "expression": "SUM(CASE WHEN `classificacao_preco` = 'MAIS_CARO_QUE_TODOS' AND NOT `possui_preco_suspeito` THEN `receita` ELSE 0 END)"
         },
         {
-          "displayName": "Produtos com preco suspeito",
-          "description": "Produtos com pelo menos uma cotacao de concorrente abaixo de 60% do nosso preco. Sao 15, todos da categoria Tênis. O alerta e sobre a CONFIANCA no dado coletado, nao sobre a validade do numero: confirme a cotacao na origem antes de mexer em preco.",
+          "displayName": "Produtos com preço suspeito",
+          "description": "Produtos com pelo menos uma cotação de concorrente abaixo de 60% do nosso preço. São 15, todos da categoria Tênis. O alerta é sobre a **confiança** no dado coletado, não sobre a validade do número: confirme a cotação na origem antes de mexer em preço.",
           "expression": "COUNT(DISTINCT CASE WHEN `possui_preco_suspeito` THEN `id_produto` END)"
         },
         {
-          "displayName": "Diferenca media vs mercado (confirmados)",
-          "description": "Media da diferenca entre o nosso preco e a media dos concorrentes, SO dos produtos sem cotacao suspeita. Dividida por 100 porque a coluna da gold esta em pontos percentuais (10 = 10%) e o formato de porcentagem multiplica por 100. Positivo = estamos mais caros. Categoria sem nenhum produto confirmado (Tênis) nao aparece.",
+          "displayName": "Diferença média vs mercado (confirmados)",
+          "description": "Média da diferença entre o nosso preço e a média dos concorrentes, **só** dos produtos sem cotação suspeita. Dividida por 100 porque a coluna da gold está em pontos percentuais (10 = 10%) e o formato de porcentagem multiplica por 100. Positivo = estamos mais caros. Categoria sem nenhum produto confirmado (Tênis) não aparece.",
           "expression": "AVG(CASE WHEN NOT `possui_preco_suspeito` THEN `diferenca_pct_vs_media` END) / 100"
         }
       ]
     },
     {
       "name": "ds_acao_mais_caros",
-      "displayName": "Acao: produtos mais caros que todos os concorrentes",
+      "displayName": "Ação: produtos mais caros que todos os concorrentes",
       "queryLines": [
         "SELECT\n",
         "  nome_produto,\n",
@@ -86,7 +86,7 @@
             "name": "titulo",
             "multilineTextboxSpec": {
               "lines": [
-                "# Diretoria de Pricing"
+                "# ![vitrine.](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNzgiIGhlaWdodD0iNTYiIHZpZXdCb3g9IjAgMCAxNzggNTYiPjx0ZXh0IHg9IjIiIHk9IjQyIiBmb250LWZhbWlseT0iRmlndHJlZSwnU2Vnb2UgVUknLEludGVyLEhlbHZldGljYSxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ0IiBmb250LXdlaWdodD0iODAwIiBsZXR0ZXItc3BhY2luZz0iLTEuMSIgZmlsbD0iIzBGMUIzMyI+dml0cmluZTx0c3BhbiBmaWxsPSIjQzZGNDMyIj4uPC90c3Bhbj48L3RleHQ+PC9zdmc+) · Diretoria de Pricing"
               ]
             }
           },
@@ -94,7 +94,7 @@
             "x": 0,
             "y": 0,
             "width": 12,
-            "height": 1
+            "height": 2
           }
         },
         {
@@ -102,15 +102,15 @@
             "name": "subtitulo",
             "multilineTextboxSpec": {
               "lines": [
-                "**215 produtos monitorados contra Mercado Livre, Amazon, Magalu e Shopee**, periodo 13/12/2025 a 11/01/2026 · fonte `gold.precos_competitividade` · valores em reais (R$)\n",
+                "**215 produtos monitorados contra Mercado Livre, Amazon, Magalu e Shopee**, período 13/12/2025 a 11/01/2026 · fonte `gold.precos_competitividade` · valores em reais (R$)\n",
                 "\n",
-                "Este dashboard separa o que esta **confirmado** do que **precisa ser conferido**. Cotacao abaixo de 60% do nosso preco e marcada como suspeita: pode ser promocao relampago ou erro de coleta. Ela continua em todas as contas (tirar esconderia concorrencia real), mas os KPIs de acao excluem os suspeitos -- o diretor nao pode reagir a um numero que talvez seja bug.\n"
+                "Este dashboard separa o que está **confirmado** do que **precisa ser conferido**. Cotação abaixo de 60% do nosso preço é marcada como suspeita: pode ser promoção relâmpago ou erro de coleta. Ela continua em todas as contas (tirar esconderia concorrência real), mas os KPIs de ação excluem os suspeitos — você não pode reagir a um número que talvez seja bug.\n"
               ]
             }
           },
           "position": {
             "x": 0,
-            "y": 1,
+            "y": 2,
             "width": 12,
             "height": 2
           }
@@ -171,15 +171,15 @@
                 ]
               },
               "frame": {
-                "title": "Categoria (vale tambem para a tabela de acao)",
+                "title": "Categoria (vale também para a tabela de ação)",
                 "showTitle": true
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 3,
-            "width": 4,
+            "y": 4,
+            "width": 6,
             "height": 2
           }
         },
@@ -212,21 +212,21 @@
                 "fields": [
                   {
                     "fieldName": "classificacao_preco",
-                    "displayName": "Classificacao",
+                    "displayName": "Classificação",
                     "queryName": "filtro_classificacao_ds_precos"
                   }
                 ]
               },
               "frame": {
-                "title": "Classificacao (nao se aplica a tabela de acao, que ja e fixa)",
+                "title": "Classificação (não se aplica à tabela de ação, que já é fixa)",
                 "showTitle": true
               }
             }
           },
           "position": {
-            "x": 4,
-            "y": 3,
-            "width": 4,
+            "x": 6,
+            "y": 4,
+            "width": 6,
             "height": 2
           }
         },
@@ -267,15 +267,17 @@
               },
               "frame": {
                 "title": "Produtos monitorados",
-                "showTitle": true
+                "showTitle": true,
+                "description": "Produtos com ao menos uma cotação de concorrente. Não é o catálogo inteiro.",
+                "showDescription": true
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 5,
+            "y": 6,
             "width": 3,
-            "height": 3
+            "height": 4
           }
         },
         {
@@ -314,16 +316,18 @@
                 }
               },
               "frame": {
-                "title": "Mais caros que TODOS — confirmados",
-                "showTitle": true
+                "title": "Mais caros que todos — confirmados",
+                "showTitle": true,
+                "description": "Acima do maior preço dos concorrentes, já sem as cotações suspeitas.",
+                "showDescription": true
               }
             }
           },
           "position": {
             "x": 3,
-            "y": 5,
+            "y": 6,
             "width": 3,
-            "height": 3
+            "height": 4
           }
         },
         {
@@ -352,27 +356,29 @@
                   "fieldName": "measure(Receita dos mais caros confirmados)",
                   "displayName": "Receita exposta",
                   "format": {
-                    "type": "number-currency",
-                    "currencyCode": "BRL",
-                    "abbreviation": "none",
+                    "type": "number-plain",
                     "decimalPlaces": {
                       "type": "exact",
                       "places": 2
-                    }
-                  }
+                    },
+                    "abbreviation": "none"
+                  },
+                  "formatTemplate": "R$ {{@formatted}}"
                 }
               },
               "frame": {
-                "title": "Receita desses produtos (exposta a concorrencia)",
-                "showTitle": true
+                "title": "Receita exposta",
+                "showTitle": true,
+                "description": "Receita que fica exposta se um concorrente ficar agressivo.",
+                "showDescription": true
               }
             }
           },
           "position": {
             "x": 6,
-            "y": 5,
+            "y": 6,
             "width": 3,
-            "height": 3
+            "height": 4
           }
         },
         {
@@ -385,8 +391,8 @@
                   "datasetName": "ds_precos",
                   "fields": [
                     {
-                      "name": "measure(Produtos com preco suspeito)",
-                      "expression": "MEASURE(`Produtos com preco suspeito`)"
+                      "name": "measure(Produtos com preço suspeito)",
+                      "expression": "MEASURE(`Produtos com preço suspeito`)"
                     }
                   ],
                   "disaggregated": false
@@ -398,7 +404,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "measure(Produtos com preco suspeito)",
+                  "fieldName": "measure(Produtos com preço suspeito)",
                   "displayName": "A conferir",
                   "format": {
                     "type": "number-plain",
@@ -411,16 +417,18 @@
                 }
               },
               "frame": {
-                "title": "Preco suspeito a conferir (nao reagir antes)",
-                "showTitle": true
+                "title": "Preço a confirmar",
+                "showTitle": true,
+                "description": "Cotação abaixo de 60% do nosso preço. Confirme na origem antes de reagir.",
+                "showDescription": true
               }
             }
           },
           "position": {
             "x": 9,
-            "y": 5,
+            "y": 6,
             "width": 3,
-            "height": 3
+            "height": 4
           }
         },
         {
@@ -465,28 +473,45 @@
                   "scale": {
                     "type": "categorical",
                     "sort": {
-                      "by": "x-reversed"
+                      "by": "custom-order",
+                      "orderedValues": [
+                        "MAIS_BARATO_QUE_TODOS",
+                        "ABAIXO_DA_MEDIA",
+                        "NA_MEDIA",
+                        "ACIMA_DA_MEDIA",
+                        "MAIS_CARO_QUE_TODOS"
+                      ]
                     }
                   },
-                  "displayName": "Classificacao de preco"
+                  "displayName": "Classificação de preço"
                 },
                 "color": {
                   "fieldName": "preco_a_confirmar",
                   "scale": {
-                    "type": "categorical"
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Sim",
+                        "color": "#F2A516"
+                      },
+                      {
+                        "value": "Não",
+                        "color": "#0F1B33"
+                      }
+                    ]
                   },
-                  "displayName": "Preco a confirmar"
+                  "displayName": "Preço a confirmar"
                 }
               },
               "frame": {
-                "title": "Produtos por classificacao, separando confirmado de a-conferir",
+                "title": "Produtos por classificação, separando confirmado de a conferir",
                 "showTitle": true
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 8,
+            "y": 10,
             "width": 6,
             "height": 6
           }
@@ -505,8 +530,8 @@
                       "expression": "`categoria`"
                     },
                     {
-                      "name": "measure(Diferenca media vs mercado (confirmados))",
-                      "expression": "MEASURE(`Diferenca media vs mercado (confirmados)`)"
+                      "name": "measure(Diferença média vs mercado (confirmados))",
+                      "expression": "MEASURE(`Diferença média vs mercado (confirmados)`)"
                     }
                   ],
                   "disaggregated": false
@@ -518,11 +543,11 @@
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "measure(Diferenca media vs mercado (confirmados))",
+                  "fieldName": "measure(Diferença média vs mercado (confirmados))",
                   "scale": {
                     "type": "quantitative"
                   },
-                  "displayName": "Diferenca vs media do mercado",
+                  "displayName": "Diferença vs média do mercado",
                   "format": {
                     "type": "number-percent",
                     "decimalPlaces": {
@@ -543,14 +568,14 @@
                 }
               },
               "frame": {
-                "title": "Diferenca media vs mercado por categoria — sem os suspeitos (Tênis nao aparece: todos os 15 sao suspeitos)",
+                "title": "Diferença média vs mercado por categoria — sem os suspeitos (Tênis não aparece: todos os 15 são suspeitos)",
                 "showTitle": true
               }
             }
           },
           "position": {
             "x": 6,
-            "y": 8,
+            "y": 10,
             "width": 6,
             "height": 6
           }
@@ -624,7 +649,7 @@
                   },
                   {
                     "fieldName": "nosso_preco",
-                    "displayName": "Nosso preco",
+                    "displayName": "Nosso preço",
                     "order": 2,
                     "type": "float",
                     "cellFormat": {
@@ -640,11 +665,20 @@
                           }
                         }
                       }
-                    }
+                    },
+                    "format": {
+                      "type": "number-plain",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "abbreviation": "none"
+                    },
+                    "formatTemplate": "R$ {{@formatted}}"
                   },
                   {
                     "fieldName": "preco_medio_concorrentes",
-                    "displayName": "Media concorrentes",
+                    "displayName": "Média concorrentes",
                     "order": 3,
                     "type": "float",
                     "cellFormat": {
@@ -660,11 +694,20 @@
                           }
                         }
                       }
-                    }
+                    },
+                    "format": {
+                      "type": "number-plain",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "abbreviation": "none"
+                    },
+                    "formatTemplate": "R$ {{@formatted}}"
                   },
                   {
                     "fieldName": "preco_minimo_concorrentes",
-                    "displayName": "Minimo concorrentes",
+                    "displayName": "Mínimo concorrentes",
                     "order": 4,
                     "type": "float",
                     "cellFormat": {
@@ -680,17 +723,26 @@
                           }
                         }
                       }
-                    }
+                    },
+                    "format": {
+                      "type": "number-plain",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "abbreviation": "none"
+                    },
+                    "formatTemplate": "R$ {{@formatted}}"
                   },
                   {
                     "fieldName": "total_concorrentes",
-                    "displayName": "Cotacoes",
+                    "displayName": "Cotações",
                     "order": 5,
                     "type": "integer"
                   },
                   {
                     "fieldName": "diferenca_pct_vs_media",
-                    "displayName": "Dif. vs media (p.p.)",
+                    "displayName": "Dif. vs média (p.p.)",
                     "order": 6,
                     "type": "float",
                     "cellFormat": {
@@ -725,7 +777,16 @@
                           }
                         }
                       }
-                    }
+                    },
+                    "format": {
+                      "type": "number-plain",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "abbreviation": "none"
+                    },
+                    "formatTemplate": "R$ {{@formatted}}"
                   },
                   {
                     "fieldName": "preco_a_confirmar",
@@ -736,14 +797,14 @@
                 ]
               },
               "frame": {
-                "title": "Acao: mais caros que TODOS os concorrentes, por receita — 35 produtos, ja ordenados",
+                "title": "Ação: mais caros que todos os concorrentes, por receita — 35 produtos, já ordenados",
                 "showTitle": true
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 14,
+            "y": 16,
             "width": 12,
             "height": 7
           }
@@ -753,13 +814,13 @@
             "name": "separador_insights",
             "multilineTextboxSpec": {
               "lines": [
-                "## Leitura rapida e proximos passos"
+                "## Leitura rápida e próximos passos"
               ]
             }
           },
           "position": {
             "x": 0,
-            "y": 21,
+            "y": 23,
             "width": 12,
             "height": 1
           }
@@ -769,30 +830,86 @@
             "name": "insights",
             "multilineTextboxSpec": {
               "lines": [
-                "Conclusoes do **periodo completo** (13/12/2025 a 11/01/2026). Este texto e fixo: nao acompanha os filtros acima.\n",
+                "Conclusões do **período completo** (13/12/2025 a 11/01/2026). Este texto é fixo: não acompanha os filtros acima.\n",
                 "\n",
-                "**1. Nao existe problema sistemico de preco.** Sem os suspeitos, a categoria em que estamos mais caros e Beleza, e a diferenca e de **+1,24%** contra a media do mercado. Depois vem Informática (+0,93%) e Moda (+0,70%), e duas categorias estao mais baratas que o mercado (Áudio -0,15% e Esporte -0,27%). Isso e ruido de precificacao, nao estrategia errada -- nao ha motivo para campanha geral de reducao.\n",
+                "**1. Não existe problema sistêmico de preço.** Sem os suspeitos, a categoria em que estamos mais caros é Beleza, e a diferença é de **+1,24%** contra a média do mercado. Depois vêm Informática (+0,93%) e Moda (+0,70%), e duas categorias estão mais baratas que o mercado (Áudio -0,15% e Esporte -0,27%). Isso é ruído de precificação, não estratégia errada — não há motivo para campanha geral de redução.\n",
                 "\n",
-                "**2. O problema e concentrado em 20 produtos — e, na pratica, em UM.** Dos 35 classificados como mais caros que TODOS os concorrentes, 20 sao reais e respondem por **R$ 161.375,09** de receita exposta. Mas a distribuicao e extrema: a **Camisa Social**, sozinha, e R$ 115.794,92 desse total -- **71,8% de toda a receita exposta**. Ela e o 2o produto em receita da empresa e esta **6,95% acima** da media dos concorrentes. Um unico ajuste de preco resolve quase tres quartos do risco.\n",
+                "**2. O problema é concentrado em 20 produtos — e, na prática, em **um**.** Dos 35 classificados como mais caros que todos os concorrentes, 20 são reais e respondem por **R$ 161.375,09** de receita exposta. Mas a distribuição é extrema: a **Camisa Social**, sozinha, é R$ 115.794,92 desse total — **71,8% de toda a receita exposta**. Ela é o 2º produto em receita da empresa e está **6,95% acima** da média dos concorrentes. Um único ajuste de preço resolve quase três quartos do risco.\n",
                 "\n",
-                "**2b. Antes de mexer na Camisa Social, olhe a coluna \"Cotacoes\".** Ela tem apenas **2** cotacoes de concorrente (o maximo e 4). \"Mais caro que todos\" com 2 fontes e evidencia mais fraca do que com 4 -- e por isso que a gold carrega total_concorrentes. Vale ampliar a coleta desse item antes de baixar o preco do 2o produto que mais fatura.\n",
+                "**2b. Antes de mexer na Camisa Social, olhe a coluna \"Cotações\".** Ela tem apenas **2** cotações de concorrente (o máximo é 4). \"Mais caro que todos\" com 2 fontes é evidência mais fraca do que com 4 — é por isso que a gold carrega total_concorrentes. Vale ampliar a coleta desse item antes de baixar o preço do 2º produto que mais fatura.\n",
                 "\n",
-                "**3. Os 15 \"mais caros\" restantes nao sao problema de preco, sao problema de coleta.** Todos os 15 sao da categoria **Tênis**, todos aparecem exatamente **+100,00%** acima da media, e todos tem **zero venda**. Olhando o detalhe: os 4 concorrentes cotam exatamente o MESMO valor, e esse valor e exatamente a METADE do nosso preco (ex.: Tênis Puma Speedcat, nosso R$ 451,90, todas as cotacoes R$ 225,95). Quatro concorrentes independentes nao convergem ao centavo, e muito menos na metade exata. Isso e assinatura de erro na ingestao -- provavelmente o preco do concorrente foi gravado como metade do nosso -- e nao de promocao relampago.\n",
+                "**3. Os 15 \"mais caros\" restantes não são problema de preço, são problema de coleta.** Todos os 15 são da categoria **Tênis**, todos aparecem exatamente **+100,00%** acima da média, e todos têm **zero venda**. Olhando o detalhe: os 4 concorrentes cotam exatamente o **mesmo** valor, e esse valor é exatamente a **metade** do nosso preço (ex.: Tênis Puma Speedcat, nosso R$ 451,90, todas as cotações R$ 225,95). Quatro concorrentes independentes não convergem ao centavo, e muito menos na metade exata. Isso é assinatura de erro na ingestão — provavelmente o preço do concorrente foi gravado como metade do nosso — e não de promoção relâmpago.\n",
                 "\n",
-                "**4. E ha um segundo achado escondido no mesmo lugar:** a categoria Tênis tem 15 produtos no catalogo e **nao vendeu uma unidade** no periodo. Ela nem aparece na receita por categoria. Pode ser ruptura de estoque, produto nao publicado no site ou cadastro novo -- em nenhum dos casos a resposta e preco.\n",
+                "**4. E há um segundo achado escondido no mesmo lugar:** a categoria Tênis tem 15 produtos no catálogo e **não vendeu uma unidade** no período. Ela nem aparece na receita por categoria. Pode ser ruptura de estoque, produto não publicado no site ou cadastro novo — em nenhum dos casos a resposta é preço.\n",
                 "\n",
-                "**O que o diretor de Pricing deve concluir:** o trabalho nao e uma revisao de tabela de precos, sao tres acoes de tamanhos muito diferentes. (a) **Camisa Social** primeiro: 71,8% da receita exposta em um item -- mas ampliar a coleta para 4 concorrentes antes de decidir, porque hoje ha so 2 cotacoes. (b) Os outros 19 confirmados, por receita decrescente, ja ordenados na tabela. (c) **Nao** mexer no preco de Tênis: abrir ticket para a ingestao confirmar as cotacoes e perguntar ao Comercial por que a categoria nao vende nada. Baixar preco por causa dos 15 seria reagir a um bug -- exatamente o erro que a coluna \"Preço a confirmar\" existe para evitar.\n"
+                "**O que concluir:** o trabalho não é uma revisão de tabela de preços, são três ações de tamanhos muito diferentes. (a) **Camisa Social** primeiro: 71,8% da receita exposta em um item — mas amplie a coleta para 4 concorrentes antes de decidir, porque hoje há só 2 cotações. (b) Os outros 19 confirmados, por receita decrescente, já ordenados na tabela. (c) **Não** mexa no preço de Tênis: abra ticket para a ingestão confirmar as cotações e pergunte ao Comercial por que a categoria não vende nada. Baixar preço por causa dos 15 seria reagir a um bug — exatamente o erro que a coluna \"Preço a confirmar\" existe para evitar.\n"
               ]
             }
           },
           "position": {
             "x": 0,
-            "y": 22,
+            "y": 24,
             "width": 12,
             "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "rodape_marca",
+            "multilineTextboxSpec": {
+              "lines": [
+                "**vitrine.** · dados de 13/12/2025 a 11/01/2026, publicados pelo pipeline `projeto_ecommerce_etl` · precisa de um corte que não está aqui? use o **Ask Genie** no topo."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 32,
+            "width": 12,
+            "height": 1
           }
         }
       ]
     }
-  ]
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#FAFAF7",
+        "dark": "#0A1224"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#0F1B33"
+      },
+      "widgetBorderColor": {
+        "light": "#FFFFFF",
+        "dark": "#0F1B33"
+      },
+      "fontColor": {
+        "light": "#0F1B33",
+        "dark": "#F4F6FA"
+      },
+      "selectionColor": {
+        "light": "#7FA30F",
+        "dark": "#C6F432"
+      },
+      "visualizationColors": [
+        "#0F1B33",
+        "#3B6FE0",
+        "#1F9D6B",
+        "#A8D61A",
+        "#F2A516",
+        "#8390AA"
+      ],
+      "fontFamily": "Figtree",
+      "widgetCornerRadius": 20,
+      "widgetHeaderAlignment": "LEFT"
+    },
+    "genieSpace": {
+      "isEnabled": true,
+      "overrideId": "01f1bc7aec9d1bd79a7c5d6b1745ab76",
+      "enablementMode": "ENABLED"
+    }
+  }
 }
